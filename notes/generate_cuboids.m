@@ -6,3 +6,4 @@ function save_file = generate_cuboids()
     video_path='/home/x/Videos/D-ZBcmcje_s.avi';
 
     save_file = stfeatures_long_video(video_path, '/home/x/Videos/output/');
+    exit()
