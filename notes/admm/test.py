@@ -20,7 +20,7 @@ class TestSequenceFunctions(unittest.TestCase):
       np.testing.assert_array_almost_equal(B, self.B_ref)
       assert self.cost[499] == cost[499]
 
-  def Xtest_admm(self):
+  def test_admm(self):
       """
       Test lasso_admm works
       """

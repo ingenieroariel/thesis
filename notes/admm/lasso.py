@@ -41,5 +41,4 @@ def lasso_admm(X, A, gamma=1, C=None):
         current_cost = 0.5 * norm2(X - np.dot(A, B)) + gamma * norm1(B)
         cost.append(current_cost)
     
-        print current_cost
     return B, cost
