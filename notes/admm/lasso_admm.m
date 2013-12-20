@@ -35,10 +35,14 @@ norm1 = @(x) sum(abs(x(:)));
 
 cost = [];
 for n = 1:maxIter
-        
+    F = (A'*A+rho*I)
+    G = (A'*X + rho*C - L)
     % Solve sub-problem to solve B
-    B = (A'*A+rho*I)\(A'*X + rho*C - L); 
+    B = F \ G; 
     
+    if n==115
+        1 ==1
+    end
     % Solve sub-problem to solve C
     C = fast_sthresh(B + L/rho, gamma/rho); 
     

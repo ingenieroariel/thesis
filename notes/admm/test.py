@@ -8,25 +8,21 @@ class TestSequenceFunctions(unittest.TestCase):
         D = sio.loadmat('admm.mat')
         self.A = D['A']
         self.X = D['X']
-        self.C = D['C_initial']
         self.B_ref = D['B']
         self.cost = D['cost']
 
-  def test_admm_no_random(self):
-      """
-      Test lasso_admm works with a preseeded C
-      """
-      B , cost = lasso_admm(self.X, self.A, gamma=1, C=self.C)
-      np.testing.assert_array_almost_equal(B, self.B_ref)
-      assert self.cost[499] == cost[499]
+
 
   def test_admm(self):
       """
-      Test lasso_admm works
+      Test lasso_admm works.
+
+      The values were obtained by running them via matlab.
       """
+
       B , cost = lasso_admm(self.X, self.A, gamma=1)
       np.testing.assert_array_almost_equal(B, self.B_ref)
-
+      np.testing.assert_almost_equal(cost[-1], self.cost.flatten(1)[-1])
 
 if __name__ == '__main__':
     unittest.main()

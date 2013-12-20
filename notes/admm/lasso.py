@@ -2,19 +2,16 @@ import numpy as np
 from scipy import sparse as sp
 
 
-def lasso_admm(X, A, gamma=1, C=None):
+def lasso_admm(X, A, gamma=1, C=None, double=False, max_rho=5.0, rho=1e-4, max_iter=500):
     c = X.shape[1]
     r = A.shape[1]
 
     L = np.zeros(X.shape)
-    rho = 1e-4
-    max_iter = 500
     I = sp.eye(r)
-    max_rho = 5
 
-    # Initialize C randomly if it is not passed
+    # Initialize C with zeros if it is not passed
     if C is None:
-        C = np.random.randn(r, c)
+        C = np.zeros((r, c))
 
     fast_sthresh = lambda x, th: np.sign(x) * np.maximum(np.abs(x) - th, 0)
 
@@ -23,12 +20,17 @@ def lasso_admm(X, A, gamma=1, C=None):
 
     cost = []
 
-    assert norm2(np.array([1,2])) == 5
-
     for n in range(1, max_iter):
-        # Solve sub-problem to solve B
-        B = np.linalg.solve(np.dot(A.transpose(), A) + np.dot(rho, I), np.dot(A.transpose(), X) + np.dot(rho,C) - L)
-    
+        #import ipdb;ipdb.set_trace()
+        # Define terms for sub-problem
+        F = np.dot(A.transpose(), A) + np.dot(rho, I)
+        G = np.dot(A.transpose(), X) + np.dot(rho,C) - L
+
+        B,resid,rank,s = np.linalg.lstsq(F,G)
+
+        # Verify B is a solution to: F dot G = B
+        np.testing.assert_array_almost_equal(np.dot(F, B), G)
+
         # Solve sub-problem to solve C
         C = fast_sthresh(B + L/rho, gamma/rho)
     
