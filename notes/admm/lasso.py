@@ -6,7 +6,7 @@ def lasso_admm(X, A, gamma=1, C=None, double=False, max_rho=5.0, rho=1e-4, max_i
     c = X.shape[1]
     r = A.shape[1]
 
-    L = np.zeros(X.shape)
+    L = np.zeros((r, c))
     I = sp.eye(r)
 
     # Initialize C with zeros if it is not passed
