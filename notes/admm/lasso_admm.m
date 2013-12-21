@@ -35,8 +35,8 @@ norm1 = @(x) sum(abs(x(:)));
 
 cost = [];
 for n = 1:maxIter
-    F = (A'*A+rho*I)
-    G = (A'*X + rho*C - L)
+    F = (A'*A+rho*I);
+    G = (A'*X + rho*C - L);
     % Solve sub-problem to solve B
     B = F \ G; 
     
