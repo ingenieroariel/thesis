@@ -3,6 +3,10 @@ from scipy import sparse as sp
 
 
 def lasso_admm(X, A, gamma=1, C=None, double=False, max_rho=5.0, rho=1e-4, max_iter=500):
+    # Cast to matrix if input is an array
+    if len(A.shape) == 1:
+        A = A.reshape(A.shape[0],1)
+
     c = X.shape[1]
     r = A.shape[1]
 
