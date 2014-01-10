@@ -26,3 +26,8 @@
 *.mtc
 *.mtc0
 *.swp
+*.pyc
+*.mp4
+*.avi
+*.idea
+.DS_Store
