@@ -1,9 +1,13 @@
-
 function save_file = generate_cuboids()
-    addpath(genpath('/home/x/toolbox/'));
-    addpath(genpath('/home/x/cuboids/'));
+    ARIEL_LAPTOP='/Users/x/work/thesis/notes/';
+    ARIEL_DESKTOP='/home/x';
 
-    video_path='/home/x/Videos/D-ZBcmcje_s.avi';
+    WORKDIR = ARIEL_LAPTOP;
 
-    save_file = stfeatures_long_video(video_path, '/home/x/Videos/output/');
+    addpath(genpath(strcat(WORKDIR, 'toolbox/')));
+    addpath(genpath(strcat(WORKDIR, 'cuboids/')));
+
+    video_path=strcat(WORKDIR, 'D-ZBcmcje_s.mov');
+
+    save_file = stfeatures_long_video(video_path, WORKDIR);
     exit()
