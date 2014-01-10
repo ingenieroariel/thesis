@@ -33,5 +33,30 @@ class TestSequenceFunctions(unittest.TestCase):
         B , cost = lasso_admm(X, A, gamma=1)
 
 
+    def test_admm_solve(self):
+        # First let's define an equation of the form: X*B = A, where B is the unknown.
+        A = np.array([8,4])
+        X = np.array([[2,3], [5, -2]])
+        # Let's verify the solution obtained manually works
+        B_manual = np.array([ 1.47368421,  1.68421053])
+        np.testing.assert_array_almost_equal(A, np.dot(X, B_manual))
+
+
+        # Now let's solve it using lstsq
+        B_lstsq = np.linalg.lstsq(X, A)[0]
+        # And compare with the manual solution
+        np.testing.assert_array_almost_equal(B_lstsq, B_manual)
+
+        # Now let's use ADMM to solve the same equation
+        B_admm, cost = lasso_admm(X, A, gamma=1e-10)
+
+        # Is this an exact solution? The cost should be zero, right?
+        np.testing.assert_almost_equal(cost[-1], 0)
+
+        # And compare it with the B obtained manually
+        np.testing.assert_array_almost_equal(B_admm, B_manual)
+
+
+
 if __name__ == '__main__':
     unittest.main()
