@@ -14,10 +14,9 @@ def lasso_cost(X, A, B, gamma):
 
 def lasso_admm(X, A, gamma=1, C=None, double=False, max_rho=5.0, rho=1e-4, max_iter=500):
     # Cast to matrix if input is an array, for when A or X are simple arrays/lists/vectors
-    if len(A.shape) == 1:
-        A = A.reshape(A.shape[0],1)
-    if len(X.shape) == 1:
-        X = X.reshape(X.shape[0],1)
+    for item in [A, X]:
+        if len(item.shape) < 2:
+            raise ValueError("Expected a matrix, found an array instead with shape %s" % item.shape)
 
     c = X.shape[1]
     r = A.shape[1]
