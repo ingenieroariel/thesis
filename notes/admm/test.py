@@ -3,6 +3,7 @@ from lasso import lasso_admm, lasso_cost
 import unittest
 import numpy as np
 
+
 class TestSequenceFunctions(unittest.TestCase):
     def setUp(self):
         D = sio.loadmat('admm.mat')
@@ -77,6 +78,34 @@ class TestSequenceFunctions(unittest.TestCase):
 
         msg = "Expected cost higher than %s for gamma=%s, got %s" % (cost_expected, gamma, cost_nonzero_gamma)
         assert cost_nonzero_gamma > cost_expected
+
+
+    def test_dictionary_learning(self):
+        """Test admm dictionary learning behaves like sklearn's dict_learning
+        """
+        from sklearn.decomposition import dict_learning
+
+        rng_global = np.random.RandomState(0)
+        n_samples, n_features = 10, 8
+        X = rng_global.randn(n_samples, n_features)
+
+        rng = np.random.RandomState(0)
+        n_components = 8
+        code, dictionary, errors = dict_learning(X, n_components=n_components,
+                                                 alpha=1, random_state=rng)
+
+        np.testing.assert_almost_equal(code.shape, (n_samples, n_components))
+        np.testing.assert_almost_equal(dictionary.shape, (n_components, n_features))
+        np.testing.assert_almost_equal(np.dot(code, dictionary).shape, X.shape)
+
+
+        from lasso import dict_learning as admm_dict_learning
+        code2, dictionary2, errors2 = admm_dict_learning(X, method='admm', n_components=n_components,
+                                                      alpha=1, random_state=rng)
+
+        np.testing.assert_almost_equal(code2.shape, (n_samples, n_components))
+        np.testing.assert_almost_equal(dictionary2.shape, (n_components, n_features))
+        np.testing.assert_almost_equal(np.dot(code2, dictionary2).shape, X.shape)
 
 
 if __name__ == '__main__':
