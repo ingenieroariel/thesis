@@ -257,7 +257,7 @@ def dict_learning(X, n_components, alpha, max_iter=100, tol=1e-8,
                    % (ii, dt, dt / 60, current_cost))
 
         # Update code
-        code = lasso_admm(X, dictionary, gamma=alpha)
+        code, __ = lasso_admm(dictionary, X.T, gamma=alpha)
 
         # Update dictionary
         dictionary, residuals = _update_dict(dictionary.T, X.T, code.T,
