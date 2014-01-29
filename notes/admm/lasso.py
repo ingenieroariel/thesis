@@ -4,13 +4,14 @@ from __future__ import print_function
 # Author: Vlad Niculae, Gael Varoquaux, Alexandre Gramfort
 # License: BSD 3 clause
 
-import numpy as np
-from scipy import sparse as sp
+import sys
 import time
+import numpy as np
+
+from math import sqrt
+from scipy import sparse as sp
 from sklearn.utils import check_random_state
 from scipy import linalg
-from sklearn.decomposition import sparse_encode
-from math import sqrt
 from numpy.lib.stride_tricks import as_strided
 
 
@@ -36,6 +37,8 @@ def lasso_admm(X, A, gamma=1, C=None, double=False, max_rho=5.0, rho=1e-4, max_i
     L = np.zeros((r, c))
     I = sp.eye(r)
 
+    #TODO: Assert C has the right shape
+
     # Initialize C with zeros if it is not passed
     if C is None:
         C = np.zeros((r, c))
@@ -47,8 +50,8 @@ def lasso_admm(X, A, gamma=1, C=None, double=False, max_rho=5.0, rho=1e-4, max_i
     for n in range(1, max_iter):
         #import ipdb;ipdb.set_trace()
         # Define terms for sub-problem
-        F = np.dot(A.transpose(), A) + np.dot(rho, I)
-        G = np.dot(A.transpose(), X) + np.dot(rho,C) - L
+        F = np.dot(A.T, A) + np.dot(rho, I)
+        G = np.dot(A.T, X) + np.dot(rho,C) - L
 
         B,resid,rank,s = np.linalg.lstsq(F,G)
 
@@ -145,7 +148,7 @@ def _update_dict(dictionary, Y, code, verbose=False, return_r2=False,
 
 def dict_learning(X, n_components, alpha, max_iter=100, tol=1e-8,
                   method='admm', n_jobs=1, dict_init=None, code_init=None,
-                  callback=None, verbose=False, random_state=None):
+                  callback=None, verbose=True, random_state=None):
     """Solves a dictionary learning matrix factorization problem.
 
     Finds the best dictionary and the corresponding sparse code for
