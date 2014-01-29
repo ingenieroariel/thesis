@@ -1,5 +1,5 @@
 import scipy.io as sio
-from lasso import lasso_admm, lasso_cost
+from lasso import lasso_admm, lasso_cost, init_dictionary
 import unittest
 import numpy as np
 from scipy import linalg
@@ -29,9 +29,9 @@ class TestSequenceFunctions(unittest.TestCase):
         """
         Test lasso_admm works when A is not square
         """
-        A = np.random.randn(10,9)
+        dictionary = np.random.randn(10,9)
         X = np.random.randn(10,8)
-        B , cost = lasso_admm(X, A, gamma=1)
+        B , cost = lasso_admm(X, dictionary, gamma=1)
 
 
     def test_admm_solve(self):
@@ -81,11 +81,27 @@ class TestSequenceFunctions(unittest.TestCase):
 
 
     def test_sparse_encode(self):
-        """Test the sparse encode using admm behaves like sklearn's sparse_encode
+        """Test the sparse encode using admm behaves like sklearn's sparse_encode.
+
+        After testing, we found that the order of the equations is reversed.
+        Here is the problem that sparse_encode tries to solve:
+                (C^*,) = argmin 0.5 || X - C D ||_2^2 + gamma * || C ||_1
+                     (C)
+
+        And here is the one that lasso_admm tries to solve
+                (C^*,) = argmin 0.5 || X - D C ||_2^2 + gamma * || C ||_1
+                     (C)
+                    Where D is the dictionary
+
+        The best way to compare them is to transpose EVERYTHING:
+        X = C D
+        and
+        X_T = D_T C_T
         """
         from sklearn.decomposition import sparse_encode
 
         alpha = 1
+        n_components=6
         X = np.array([[ 1.76405235,  0.40015721,  0.97873798,  2.2408932 ,  1.86755799,
                         -0.97727788,  0.95008842, -0.15135721],
                        [-0.10321885,  0.4105985 ,  0.14404357,  1.45427351,  0.76103773,
@@ -108,34 +124,21 @@ class TestSequenceFunctions(unittest.TestCase):
                         -0.57884966, -0.31155253,  0.05616534]])
 
         # start with sensible defaults
-        code, S, dictionary = linalg.svd(X, full_matrices=False)
+        dictionary = init_dictionary(X, n_components=n_components)
 
-        code_sklearn = sparse_encode(X, dictionary, alpha=alpha, init=code)
+        code_sklearn = sparse_encode(X, dictionary, alpha=alpha)
 
-        #TODO: Verify that sparse_encode indeed returns a code that is sparse:
-        #np.testing.assert_almost_equal(code, code_sklearn)
-        norm1 = lambda x: np.sum(np.abs(x.flatten(1)))
+        code_admm_T, costs = lasso_admm(X.T, dictionary.T, gamma=alpha)
 
-        self.assertGreaterEqual(norm1(code), norm1(code_sklearn))
-
-        code_admm, costs = lasso_admm(X, dictionary, gamma=alpha)
-
-        #TODO: Verify that lasso_admm indeed returns a code that is sparse:
-        self.assertGreaterEqual(norm1(code), norm1(code_admm))
-
-        # Check if both codes are similar.
-        #np.testing.assert_array_almost_equal(code_sklearn, code_admm)
-        norm2 = lambda x: np.dot(x.flatten(1).transpose(), x.flatten(1))
-        cost = lambda X, code, dictionary: 0.5* norm2(X - np.dot(code, dictionary))
+        code_admm = code_admm_T.T
 
         # Compare the costs with svd.
-        cost_svd =  lasso_cost(X, code, dictionary, alpha)
-        cost_sklearn =  lasso_cost(X, code_sklearn, dictionary, alpha)
-        cost_admm =  lasso_cost(X, code_admm, dictionary, alpha)
+        cost_sklearn =  lasso_cost(X.T, dictionary.T, code_sklearn.T, alpha)
+        cost_admm =  lasso_cost(X.T, dictionary.T, code_admm.T, alpha)
 
-        self.assertLessEqual(cost_sklearn, cost_svd)
-        import ipdb;ipdb.set_trace()
-#        self.assertLessEqual(cost_admm, cost_svd)
+        # Make sure admm is better than lars
+        np.testing.assert_array_almost_equal(code_admm, code_sklearn)
+        np.testing.assert_almost_equal(cost_admm, cost_sklearn)
 
 
     def test_dictionary_learning(self):
@@ -145,10 +148,12 @@ class TestSequenceFunctions(unittest.TestCase):
 
         rng_global = np.random.RandomState(0)
         n_samples, n_features = 10, 8
+        #X = rng_global.randn(n_features, n_samples)
         X = rng_global.randn(n_samples, n_features)
 
+
         rng = np.random.RandomState(0)
-        n_components = 8
+        n_components = 6
         code, dictionary, errors = dict_learning(X, n_components=n_components,
                                                  alpha=1, random_state=rng)
 
@@ -169,8 +174,8 @@ class TestSequenceFunctions(unittest.TestCase):
         np.testing.assert_almost_equal(np.dot(code2, dictionary2).shape, X.shape)
 
         # And compare it with the B obtained manually
-        #np.testing.assert_array_almost_equal(code, code2)
-        #np.testing.assert_array_almost_equal(dictionary, dictionary2)
+        np.testing.assert_array_almost_equal(code, code2)
+        np.testing.assert_array_almost_equal(dictionary, dictionary2)
 
 
 if __name__ == '__main__':

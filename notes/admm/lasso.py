@@ -15,24 +15,34 @@ from scipy import linalg
 from numpy.lib.stride_tricks import as_strided
 
 
-def lasso_cost(X, A, B, gamma):
+def lasso_cost(X, D, C, gamma):
     """
     Calculate the cost of the lasso function
     """
     norm2 = lambda x: np.dot(x.flatten(1).transpose(), x.flatten(1))
     norm1 = lambda x: np.sum(np.abs(x.flatten(1)))
-    the_cost = 0.5 * norm2(X - np.dot(A, B)) + gamma * norm1(B)
+    the_cost = 0.5 * norm2(X - np.dot(D, C)) + gamma * norm1(C)
     return the_cost
 
 
-def lasso_admm(X, A, gamma=1, C=None, double=False, max_rho=5.0, rho=1e-4, max_iter=500):
+def lasso_admm(X, D, gamma=1, C=None, double=False, max_rho=5.0, rho=1e-4, max_iter=500):
+    """
+    Finds the best sparse code for a given dictionary for
+    approximating the data matrix X by solving::
+
+        (U^*,) = argmin 0.5 || X - U V ||_2^2 + gamma * || U ||_1
+                     (U)
+
+    where V is the dictionary and U is the sparse code.
+    """
     # Cast to matrix if input is an array, for when A or X are simple arrays/lists/vectors
-    for item in [A, X]:
+    for item in [D, X]:
+
         if len(item.shape) < 2:
             raise ValueError("Expected a matrix, found an array instead with shape %s" % item.shape)
 
     c = X.shape[1]
-    r = A.shape[1]
+    r = D.shape[1]
 
     L = np.zeros((r, c))
     I = sp.eye(r)
@@ -50,8 +60,8 @@ def lasso_admm(X, A, gamma=1, C=None, double=False, max_rho=5.0, rho=1e-4, max_i
     for n in range(1, max_iter):
         #import ipdb;ipdb.set_trace()
         # Define terms for sub-problem
-        F = np.dot(A.T, A) + np.dot(rho, I)
-        G = np.dot(A.T, X) + np.dot(rho,C) - L
+        F = np.dot(D.T, D) + np.dot(rho, I)
+        G = np.dot(D.T, X) + np.dot(rho,C) - L
 
         B,resid,rank,s = np.linalg.lstsq(F,G)
 
@@ -67,7 +77,7 @@ def lasso_admm(X, A, gamma=1, C=None, double=False, max_rho=5.0, rho=1e-4, max_i
         rho = min(max_rho, rho*1.1)
     
         # get the current cost
-        current_cost = lasso_cost(X, A, B, gamma)
+        current_cost = lasso_cost(X, D, B, gamma)
         cost.append(current_cost)
     
     return B, cost
@@ -148,7 +158,7 @@ def _update_dict(dictionary, Y, code, verbose=False, return_r2=False,
 
 def dict_learning(X, n_components, alpha, max_iter=100, tol=1e-8,
                   method='admm', n_jobs=1, dict_init=None, code_init=None,
-                  callback=None, verbose=True, random_state=None):
+                  callback=None, verbose=False, random_state=None):
     """Solves a dictionary learning matrix factorization problem.
 
     Finds the best dictionary and the corresponding sparse code for
@@ -260,7 +270,9 @@ def dict_learning(X, n_components, alpha, max_iter=100, tol=1e-8,
                    % (ii, dt, dt / 60, current_cost))
 
         # Update code
-        code, __ = lasso_admm(dictionary, X.T, gamma=alpha)
+        code_T, __ = lasso_admm(X.T, dictionary.T, gamma=alpha)
+
+        code = code_T.T
 
         # Update dictionary
         dictionary, residuals = _update_dict(dictionary.T, X.T, code.T,
@@ -287,3 +299,20 @@ def dict_learning(X, n_components, alpha, max_iter=100, tol=1e-8,
 
     return code, dictionary, errors
 
+
+def init_dictionary(X, n_components):
+    """Use SVD to initialize a init_dictionary
+       Inputs:
+          X: The data
+          n_components: The number of components for the dictionary
+    """
+    code, S, dictionary = linalg.svd(X, full_matrices=False)
+    dictionary = S[:, np.newaxis] * dictionary
+    r = dictionary.shape[0]
+    if n_components <= r:  # True even if n_components=None
+        dictionary = dictionary[:n_components, :]
+    else:
+        dictionary = np.r_[dictionary,
+                           np.zeros((n_components - r, dictionary.shape[1]))]
+
+    return dictionary
