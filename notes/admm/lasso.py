@@ -65,9 +65,6 @@ def lasso_admm(X, D, gamma=1, C=None, double=False, max_rho=5.0, rho=1e-4, max_i
 
         B,resid,rank,s = np.linalg.lstsq(F,G)
 
-        # Verify B is a solution to: F dot B = G
-        np.testing.assert_array_almost_equal(np.dot(F, B), G)
-
         # Solve sub-problem to solve C
         C = fast_sthresh(B + L/rho, gamma/rho)
     
