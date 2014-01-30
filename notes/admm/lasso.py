@@ -45,7 +45,7 @@ def lasso_admm(X, D, gamma=1, C=None, double=False, max_rho=5.0, rho=1e-4, max_i
     r = D.shape[1]
 
     L = np.zeros((r, c))
-    I = sp.eye(r)
+    I = np.eye(r)
 
     #TODO: Assert C has the right shape
 
@@ -60,7 +60,7 @@ def lasso_admm(X, D, gamma=1, C=None, double=False, max_rho=5.0, rho=1e-4, max_i
     for n in range(1, max_iter):
         #import ipdb;ipdb.set_trace()
         # Define terms for sub-problem
-        F = np.dot(D.T, D) + np.dot(rho, I)
+        F = np.dot(D.T, D) + rho * I
         G = np.dot(D.T, X) + np.dot(rho,C) - L
 
         B,resid,rank,s = np.linalg.lstsq(F,G)
@@ -226,7 +226,8 @@ def dict_learning(X, n_components, alpha, max_iter=100, tol=1e-8,
     random_state = check_random_state(random_state)
 
     if n_jobs == -1:
-        n_jobs = cpu_count()
+        raise NotImplementedError()
+    #    n_jobs = cpu_count()
 
     # Init the code and the dictionary with SVD of Y
     if code_init is not None and dict_init is not None:
