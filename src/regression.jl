@@ -1,14 +1,19 @@
-using IterativeSolvers
+export lasso, matrixlasso
 
-function lasso(A_in, X_in, lambda=1; rho=1, quiet=true, maxiter=5000, ABSTOL=1e-6, RELTOL=1e-5)
+function matrixlasso(A_in, X_in, lambda=1; kwargs...)
     dimensions, samples = size(X_in)
     dimensions, components = size(A_in)
 
     X = reshape(X_in, dimensions * samples)
     A = kron(eye(samples), A_in)
+    B = lasso(A, X, lambda; kwargs...) 
 
+    return reshape(B, components, samples)
+end
+
+function lasso(A, X, lambda=1; rho=1, quiet=true, maxiter=5000, ABSTOL=1e-6, RELTOL=1e-5)
     samdim = size(X, 1)
-    samcom = size(A, 2)
+    samcom = size(A, 1)
 
     I = eye(samcom)
 
@@ -64,40 +69,5 @@ function lasso(A_in, X_in, lambda=1; rho=1, quiet=true, maxiter=5000, ABSTOL=1e-
             break;
         end
     end
-
-    return reshape(sthresh(B, ABSTOL), components, samples)
-
+    return sthresh(B, ABSTOL)
 end
-
-
-using MAT
-
-file = matopen("admm.mat")
-A_in = read(file,"A")
-B_cvx = read(file, "B")
-X_in = read(file, "X")
-cost = read(file, "cost")
-close(file)
-
-B_ariel = lasso(A_in, X_in;quiet=false)
-
-print("B_cvx[1, 1:5]","\n")
-print(B_cvx[1, 1:5], "\n")
-print("B_ariel[1, 1:5]","\n")
-print(B_ariel[1,1:5], "\n")
-
-
-function assertapprox(x, y; ATOL=1e-2, RTOL=1e-2)
-    assert(size(x) == size(y))
-    for n in 1:length(x)
-        equals = isapprox(x[n], y[n]; atol=ATOL, rtol=RTOL)
-        if ~equals
-           print("Found difference in items:")
-           print(" x[",n,"]=", x[n]," y[",n,"]=", y[n])
-           print(" with atol=", ATOL, " and rtol=", RTOL, "\n")
-        end
-        #assert(equals)
-    end 
-end
-
-assertapprox(B_ariel, B_cvx)
