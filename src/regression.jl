@@ -13,14 +13,14 @@ end
 
 function lasso(A, X, lambda=1; rho=1, quiet=true, maxiter=5000, ABSTOL=1e-6, RELTOL=1e-5)
     samdim = size(X, 1)
-    samcom = size(A, 1)
+    samcom = size(A, 2)
 
     I = eye(samcom)
 
     # Initialize B and it's dual variable C with zeroes.
     B = C = zeros(samcom)
 
-    L = zeros(size(X))
+    L = zeros(samcom)
     sthresh(x, th) = sign(x) .* max(abs(x)-th,0)
 
     F = A'*A+rho*I

@@ -9,7 +9,7 @@ function dict_update!(D, x, a)
     R = -D * a
     R += x
     
-    components = length(a)
+    dimensions, components = size(D)
     
     for k in 1:components
         D[:, k] = R * a[k, :]'
@@ -19,8 +19,8 @@ function dict_update!(D, x, a)
         if l2_square < 1e-20
             # If the value is too small, let's replace it with random info
             # but set the coef to zero.
-            D[:, k] = randn()
-            a[k] = 0.0
+            D[:, k] = randn(dimensions)
+            a[k, :] = 0.0
             l2_square = sqrt(norm(D[:, k], 2))
         end
 
@@ -28,7 +28,7 @@ function dict_update!(D, x, a)
         D[:, k] /= sqrt(l2_square)
 
         # R <- 1.0 * U_k * V_k^T + R
-        BLAS.ger!(1.0, D[:, k], [a[k]], R[:,:])
+        BLAS.ger!(1.0, D[:, k], vec(a[k, :]), R[:,:])
     end 
 end
 
@@ -50,7 +50,8 @@ function dictionary_learning(X, components; quiet=true)
     end;
     
     # Iterate over the samples
-    for i in 1:length(X)
+    for i in 1:size(X, 2)
+        print("Iterating over sample #", i, "/",size(X,2))
         x = X[:,i]
         # Find a sparse code with a given data 
         a = sparse_code(D, x; quiet=quiet)
