@@ -13,7 +13,7 @@ from scipy import sparse as sp
 from sklearn.utils import check_random_state
 from scipy import linalg
 from numpy.lib.stride_tricks import as_strided
-from scipy.sparse.linalg import lsqr
+
 from scipy.sparse import csc_matrix as sparse
 
 def lasso_cost(X, D, C, gamma):
@@ -26,7 +26,7 @@ def lasso_cost(X, D, C, gamma):
     return the_cost
 
 
-def lasso_admm(X_in, D_in, gamma=1, C=None, double=False, max_rho=5.0, rho=1e-4, max_iter=500):
+def lasso_admm(X, D, gamma=1, C=None, double=False, max_rho=5.0, rho=1e-4, max_iter=500):
     """
     Finds the best sparse code for a given dictionary for
     approximating the data matrix X by solving::
@@ -36,13 +36,16 @@ def lasso_admm(X_in, D_in, gamma=1, C=None, double=False, max_rho=5.0, rho=1e-4,
 
     where V is the dictionary and U is the sparse code.
     """
-    dimensions, samples = X_in.shape
-    dimensions, components = D_in.shape
+    # Cast to matrix if input is an array, for when A or X are simple arrays/lists/vectors
+    for item in [D, X]:
 
-    X = X_in.reshape(dimensions * samples).T
-    D = sp.kron(sp.eye(samples), sparse(D_in))
+        if len(item.shape) < 2:
+            raise ValueError("Expected a matrix, found an array instead with shape %s" % item.shape)
 
-    c = len(X)
+    X = sparse(X)
+    D = sparse(D)
+
+    c = X.shape[1]
     r = D.shape[1]
 
     L = sparse(np.zeros((r, c)))
@@ -59,17 +62,16 @@ def lasso_admm(X_in, D_in, gamma=1, C=None, double=False, max_rho=5.0, rho=1e-4,
     cost = []
 
     for n in range(1, max_iter):
+        #import ipdb;ipdb.set_trace()
         # Define terms for sub-problem
         F1 = D.T.dot(D)
         F2 = rho * I
         F = F1 + F2
-        G1 = D.T.dot(X)
-        G2 = rho * C
+        G1 = np.dot(D.T, X)
+        G2 = np.dot(rho,C)
         G = G1 + G2 - L
 
-        print(F.shape, G.shape)
-
-        B,resid,rank,s = lsqr(F,G)
+        B,resid,rank,s = np.linalg.lstsq(F,G)
 
         # Solve sub-problem to solve C
         C = fast_sthresh(B + L/rho, gamma/rho)
@@ -83,7 +85,7 @@ def lasso_admm(X_in, D_in, gamma=1, C=None, double=False, max_rho=5.0, rho=1e-4,
         current_cost = lasso_cost(X, D, B, gamma)
         cost.append(current_cost)
     
-    return B.reshape(samples, components), cost
+    return B, cost
 
 
 def _update_dict(dictionary, Y, code, verbose=False, return_r2=False,
@@ -272,7 +274,6 @@ def dict_learning(X, n_components, alpha, max_iter=100, tol=1e-8,
             print ("Iteration % 3i "
                    "(elapsed time: % 3is, % 4.1fmn, current cost % 7.3f)"
                    % (ii, dt, dt / 60, current_cost))
-
 
         # Update code
         code_T, __ = lasso_admm(X.T, dictionary.T, gamma=alpha)
