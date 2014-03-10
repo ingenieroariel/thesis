@@ -29,7 +29,9 @@
 *.pyc
 *.mp4
 *.avi
+*.AVI
 *.mov
 *.idea
 .DS_Store
 .ipynb_checkpoints
+*.mat
