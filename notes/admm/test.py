@@ -1,5 +1,5 @@
 import scipy.io as sio
-from lasso import lasso_admm, lasso_cost, init_dictionary
+from lasso import lasso_admm, lasso_cost, init_dictionary, adjacency
 import unittest
 import numpy as np
 from scipy import linalg
@@ -176,6 +176,26 @@ class TestSequenceFunctions(unittest.TestCase):
         # And compare it with the B obtained manually
         np.testing.assert_array_almost_equal(code, code2)
         np.testing.assert_array_almost_equal(dictionary, dictionary2)
+
+
+    def test_adjacency(self):
+        """Verify the adjacency function works as expected
+        """
+        data = np.array([[320, 482, 638], [318, 472, 613], [300, 400, 600]])
+
+        # Each column in data has measurements for x, y and t. The first and the second sample
+        # should show up as similar, the third one should not be similar to the others.
+        W = adjacency(data)
+        I = np.eye(3)
+
+        # Check the diagonal is full of ones.
+        np.testing.assert_almost_equal(W * I, I)
+
+        # Check the third and the first one are not alike at all
+        np.testing.assert_almost_equal(W[0, 2], 0)
+
+        # Check the first and the second one are alike
+        np.testing.assert_array_less(0, W[1,2])
 
 
 if __name__ == '__main__':

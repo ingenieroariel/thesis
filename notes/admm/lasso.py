@@ -9,7 +9,6 @@ import time
 import numpy as np
 
 from math import sqrt
-from scipy import sparse as sp
 from sklearn.utils import check_random_state
 from scipy import linalg
 from numpy.lib.stride_tricks import as_strided
@@ -314,3 +313,28 @@ def init_dictionary(X, n_components):
                            np.zeros((n_components - r, dictionary.shape[1]))]
 
     return dictionary
+
+import scipy as sp
+def adjacency(data, delta=10, tau=100, samples=None):
+    """
+        
+    W_{j,k} = exp \left [ \frac{-\left \| x_j - x_k \right \|^2}{2\delta^2}
+                         -\frac{\left \| y_j - y_k \right \|^2}{2\delta^2}
+                         -\frac{-\left \| t_j - t_k \right \|^2}{2 \tau^2} \right ]
+    """
+    # Use the samples keyword argument to limit the calculation if needed.
+    # It is useful during delta and tau debugging.
+    if samples is None:
+        samples, _ = data.shape
+
+    x = data[:, 0]
+    y = data[:, 1]
+    t = data[:, 2]
+    W = np.zeros((samples, samples))
+    for i in range(samples):
+        for j in range(samples):
+            xx = (x[i] - x[j])**2.0 / (2.0 * delta ** 2)
+            yy = (y[i] - y[j])**2.0 / (2.0 * delta ** 2)
+            tt = (t[i] - t[j])**2.0 / (2.0 * tau ** 2)
+            W[i,j] = np.exp(-xx -yy - tt)
+    return W

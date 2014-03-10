@@ -11,7 +11,7 @@ function matrixlasso(A_in, X_in, lambda=1; kwargs...)
     return reshape(B, components, samples)
 end
 
-function lasso(A, X, lambda=1; rho=1, quiet=true, maxiter=5000, ABSTOL=1e-6, RELTOL=1e-5)
+function lasso(A, X, lambda=1; rho=1, quiet=true, maxiter=5000, atol=1e-6, rtol=1e-5)
     samdim = size(X, 1)
     samcom = size(A, 2)
 
@@ -49,8 +49,8 @@ function lasso(A, X, lambda=1; rho=1, quiet=true, maxiter=5000, ABSTOL=1e-6, REL
         sqrtn = sqrt(samcom)
 
         #FIXME(Ariel): Are these two the right eps?
-        eps_pri  = sqrtn*ABSTOL + RELTOL*max(norm(B), norm(C))
-        eps_dual = sqrtn*ABSTOL + RELTOL*norm(B)
+        eps_pri  = sqrtn*atol + rtol*max(norm(B), norm(C))
+        eps_dual = sqrtn*atol + rtol*norm(B)
 
         #FIXME(Ariel): Fix calculation of prires and duares.
         # The values below are incorrect placeholders that work by chance.
@@ -69,5 +69,5 @@ function lasso(A, X, lambda=1; rho=1, quiet=true, maxiter=5000, ABSTOL=1e-6, REL
             break;
         end
     end
-    return sthresh(B, ABSTOL)
+    return sthresh(B, atol)
 end
