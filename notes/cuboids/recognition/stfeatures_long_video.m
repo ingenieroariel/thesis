@@ -37,7 +37,7 @@ while (k < clip_length)
     clear mov;
     
     fprintf('Detecting features\n');
-    [R,subs,vals,cuboids] = stfeatures( mov_bw, 1.5, 3, 1, 2e-4, [],1.85, 2, 1, 0);
+    [R,subs,vals,cuboids] = stfeatures( mov_bw, 1.5, 3, 1, 1e-3, [],1.85, 2, 1, 0);
     clear R;
     % update frames
     if ~isempty(subs)
@@ -46,12 +46,14 @@ while (k < clip_length)
     
     fprintf('Computing descriptors\n');
     iscuboid = 1;  histFLAG = 1;  jitterFLAG = 0;
-    imdesc = imagedesc_generate( iscuboid, 'HOG', histFLAG, jitterFLAG );
-    desc = imagedesc(cuboids, imdesc, 0);
+    imdesc_hog = imagedesc_generate( iscuboid, 'HOG', histFLAG, jitterFLAG );
+    desc_hog = imagedesc(cuboids, imdesc_hog, 0);
     
+    imdesc_hof = imagedesc_generate( iscuboid, 'HOF', histFLAG, jitterFLAG );
+    desc_hof = imagedesc(cuboids, imdesc_hof, 0);
     
     [dummy, filename] = fileparts(video_filename);
     save_file = fullfile(output_path, ['features_' filename '_' sprintf('%02d', k_ind) '.mat']);
-    save(save_file, 'subs', 'vals', 'frame1', 'frame2','desc');
+    save(save_file, 'subs', 'vals', 'frame1', 'frame2','desc_hog', 'desc_hof');
     
 end
