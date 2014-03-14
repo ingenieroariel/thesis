@@ -53,12 +53,11 @@
 	\thispagestyle{empty}
 	\singlespacing
 	\begin{center}
-		UNIVERSITY OF CALIFORNIA, \\
-		IRVINE \\
+		UNIVERSIDAD DEL NORTE \\
 		\vspace{0.4in}
 		\Thesistitle \\
 		\vspace{0.15in}
-		DISSERTATION \\
+		THESIS \\
 		\vspace{0.4in}
 		submitted in partial satisfaction of the requirements \\
 		for the degree of \\
@@ -73,9 +72,9 @@
 	\end{center}
 	\vspace{1in}
 	\begin{flushright}
-		Dissertation Committee: \\
-		\Committeechair, Chair \\
-		\Othercommitteemembers \\
+		Advisor: \\
+		\Committeechair
+
 	\end{flushright}
 	\vfill
 	\begin{center}
@@ -200,18 +199,18 @@
 \newcommand{\preliminarypages}
 {
 	\pagenumbering{roman}
-	\thesistitlepage
-        \ifx\Prepublishedcopyrightdeclaration\undefined
-	  \copyrightpage
-	\else
-	  \prepublishedcopyrightpage
-        \fi
-	\setcounter{page}{2}
+%	\thesistitlepage
+%        \ifx\Prepublishedcopyrightdeclaration\undefined
+%	  \copyrightpage
+%	\else
+%	  \prepublishedcopyrightpage
+%        \fi
+%	\setcounter{page}{2}
 	%\signaturepage  %% not for electronic submission
-        \ifx\Dedications\undefined
-	\else
-	  \dedicationpage
-	\fi
+%   \ifx\Dedications\undefined
+%	\else
+%	  \dedicationpage
+%	\fi
 	\tableofcontents
 	\clearpage
 	\phantomsection
@@ -229,17 +228,17 @@
 	  \listofalgorithms
 	\fi
 	\clearpage
-	\phantomsection
-	\addcontentsline{toc}{chapter}{ACKNOWLEDGMENTS}
-	\acknowledgmentspage
-	\clearpage
-	\phantomsection
-	\addcontentsline{toc}{chapter}{CURRICULUM VITAE}
-	\curriculumvitaepage
-	\clearpage
-	\phantomsection
-	\addcontentsline{toc}{chapter}{ABSTRACT OF THE DISSERTATION}
-	\abstractpage
+%	\phantomsection
+%	\addcontentsline{toc}{chapter}{ACKNOWLEDGMENTS}
+%	\acknowledgmentspage
+%	\clearpage
+%	\phantomsection
+%	\addcontentsline{toc}{chapter}{CURRICULUM VITAE}
+%	\curriculumvitaepage
+%	\clearpage
+%	\phantomsection
+%	\addcontentsline{toc}{chapter}{ABSTRACT}
+%	\abstractpage
 	\pagenumbering{arabic}
 }
 
