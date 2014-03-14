@@ -13,6 +13,12 @@ from sklearn.utils import check_random_state
 from scipy import linalg
 from numpy.lib.stride_tricks import as_strided
 
+import os
+import glob
+import scipy.io as sio
+import pylab as P
+
+
 
 def lasso_cost(X, D, C, gamma):
     """
@@ -314,7 +320,7 @@ def init_dictionary(X, n_components):
 
     return dictionary
 
-import scipy as sp
+
 def adjacency(data, delta=10, tau=100, samples=None):
     """
         
@@ -327,9 +333,9 @@ def adjacency(data, delta=10, tau=100, samples=None):
     if samples is None:
         samples, _ = data.shape
 
-    x = data[:, 0]
-    y = data[:, 1]
-    t = data[:, 2]
+    x = 1.0*data[:, 0]
+    y = 1.0*data[:, 1]
+    t = 1.0*data[:, 2]
     W = np.zeros((samples, samples))
     for i in range(samples):
         for j in range(samples):
@@ -338,3 +344,88 @@ def adjacency(data, delta=10, tau=100, samples=None):
             tt = (t[i] - t[j])**2.0 / (2.0 * tau ** 2)
             W[i,j] = np.exp(-xx -yy - tt)
     return W
+
+
+
+
+def generate_events(video_folder, overlap = (0, 0, 0), min_cuboids=0, skip=False):
+
+    window_width = 80
+    window_height = 80
+    window_frames = 40
+    
+    width = 512
+    height = 384
+    frames = 144249
+
+    x_overlap, y_overlap, t_overlap = overlap
+
+    for pth in sorted(glob.glob(os.path.join(video_folder, '*.mat'))):
+        # Load data from mat file.
+        data = sio.loadmat(pth)
+        
+        if skip and "events" in data:
+            print("Skipping: ", pth)
+            continue
+        
+        start_frame = data["frame1"]
+        end_frame = data["frame2"]
+        locations = data["subs"]
+        
+        # Use a sliding window to calculate the events.
+        
+        event_limits = []
+        event_cuboids = []
+        
+        t_step = int(round(window_frames * (1 - t_overlap)))
+        y_step = int(round(window_width * (1 - y_overlap)))
+        x_step = int(round( window_height * (1 - x_overlap)))
+        
+        for top_t in range(start_frame, end_frame, t_step):
+            for top_y in range(0, width, y_step):
+                for top_x in range(0, height, x_step):
+                    cuboids = []
+                    for index, (x, y, t) in enumerate(locations):
+                        if top_x <= x <= top_x + window_height:
+                            if top_y <= y <= top_y + window_width:
+                                if top_t <= t <= top_t + window_frames:
+                                    cuboids.append(index)
+    
+                    if len(cuboids) > min_cuboids:
+                        event_limits.append((top_x, top_y, top_t))
+                        event_cuboids.append(cuboids)
+
+
+        # Get the cuboid values and calculate the adjacency matrix
+        subs = data["subs"]
+        hogs = data["desc_hog"]
+        hofs = data["desc_hof"]
+        
+        event_adjacency = []
+        event_descriptors = []
+        event_cuboid_locations = []
+        
+        for limits, cuboids in zip(event_limits, event_cuboids):
+            # Cuboid location (absolute)
+            cuboid_locations = subs[cuboids, :]
+            event_cuboid_locations.append(cuboid_locations)
+            
+            # HOG + HOF
+            cuboid_hog = hogs[cuboids, :]
+            cuboid_hof = hofs[cuboids, :]
+
+            cuboid_data = np.concatenate((cuboid_hog, cuboid_hof), axis=1)
+            event_descriptors.append(cuboid_data)
+            
+            # Adjacency
+            W = adjacency(cuboid_locations)
+            event_adjacency.append(W)
+        
+        events = zip(event_limits, event_cuboids, event_descriptors, event_cuboid_locations, event_adjacency)
+
+        data["events"] = events
+        
+        sio.savemat(pth, data)
+
+        # Report number of events
+        print("The file ", pth, "has ", len(events), " events.")
