@@ -54,6 +54,6 @@ while (k < clip_length)
     
     [dummy, filename] = fileparts(video_filename);
     save_file = fullfile(output_path, ['features_' filename '_' sprintf('%02d', k_ind) '.mat']);
-    save(save_file, 'subs', 'vals', 'frame1', 'frame2','desc_hog', 'desc_hof');
+    save(save_file, 'subs', 'vals',  'frame1', 'frame2','desc_hog', 'desc_hof');
     
 end
