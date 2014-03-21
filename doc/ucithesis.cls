@@ -124,7 +124,7 @@
 	\end{flushright}
 	\vspace{.75in}
 	\begin{center}
-	University of California, Irvine \\
+	Universidad del Norte \\
 	\Degreeyear
 	\end{center}
 	\clearpage
@@ -175,9 +175,9 @@
 		\vspace{0.2in}
 		\Degreename\ in \Degreefield \\
 		\vspace{0.2in}
-		University of California, Irvine, \Degreeyear \\
+		Universidad del Norte, \Degreeyear \\
 		\vspace{0.2in}
-		\Committeechair, Chair \\
+		\Committeechair \\
 	\end{center}
 	\vspace{0.2in}
 	\doublespacing
