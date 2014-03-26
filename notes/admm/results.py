@@ -3,7 +3,8 @@ import numpy as np
 import glob
 import csv
 import scipy.io as sio
-from admm.lasso import lasso_admm, _update_dict
+from admm.lasso import lasso_admm, _update_dict, init_dictionary
+from sklearn.utils import check_random_state
 
 
 ACTIONS = ["nopay", "loitering","wrong_direction","interaction", "etc"]
@@ -51,7 +52,7 @@ def get_events_files(video_folder=os.path.abspath('features_subway')):
     return events_files
 
 
-def process_events(events_files, D=None, train=False):
+def process_events(events_files, dictionary=None, train=False, random_state=None):
     """Extract event information from a .mat file.
     
     An event is a list of tuples, with each tuple containing the following variables:
@@ -63,9 +64,8 @@ def process_events(events_files, D=None, train=False):
         event_adjacency
     """
 
-    detection = dict(zip(ACTIONS, np.zeros(len(ACTIONS))))
-    detection['false_alarm'] = 0
-    
+    random_state = check_random_state(random_state)
+
     components = 100
     alpha=1
     
@@ -85,7 +85,8 @@ def process_events(events_files, D=None, train=False):
 
             data = sio.loadmat(pth)
             events = data["events"]
-            
+            results = []
+
             for event in events:
                 ((x,), (y,), (t,)), event_cuboids, event_descriptors, event_cuboid_locations, event_adjacency = event
         
@@ -93,35 +94,28 @@ def process_events(events_files, D=None, train=False):
                     sort_order = np.argsort(event_descriptors[:,2])
                     X = event_descriptors[sort_order, :]
                     
-                    if D is  None:
-                         D = init_dictionary(X, components)
- 
+                    if dictionary is  None:
+                         dictionary = init_dictionary(X, components)
+
                     # Update code
                     code_T, __ = lasso_admm(X.T, dictionary.T, gamma=alpha)
                     
                     code = code_T.T
 
+                    mse = ((dictionary * code - X) ** 2).mean(axis=1)
+
+                    results.append((((x, y, t), code, mse))
+
                     # Update dictionary
                     dictionary, residuals = _update_dict(dictionary.T, X.T, code.T,
-                                             verbose=verbose, return_r2=True,
-                                             random_state=random_state)
+                                             return_r2=True, random_state=random_state)
                     dictionary = dictionary.T
                     
-                    # Detectar si el evento es inusual
-                    event_counter += 1
+             result_pth = pth.replace(".mat", "%s-%s-result.mat" % (start, end))
 
-
-        # if events were found, let's update the detection dictionary.
-        if event_counter > 0:
-            for action in actions:
-                detection[action] = detection[action] + 1
-            else:
-                detection['false_alarm'] = detection['false_alarm'] + 1
+             sio.savemat(result_pth, {'results': results})
+             print "Saved %s" % result_pth
 
         print "Found %s events in clip starting on %s and ending on %s with actions %s" % (event_counter, start, end, actions)
 
-    detection['total'] = 0
-    for action in ACTIONS:
-        detection['total'] = detection['total'] + detection[action]
-
-    return D, detection
+    return dictionary
