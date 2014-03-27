@@ -52,6 +52,65 @@ def get_events_files(video_folder=os.path.abspath('features_subway')):
     return events_files
 
 
+def reconstruct_events(event_folder=None,output_folder=None, dictionary=None, components=100, alpha=1, start=0, end=np.inf, actions=[], random_state=None):
+    random_state = check_random_state(random_state)
+ 
+    if event_folder is None:
+        event_folder=os.path.abspath('/share/storage/vision/subway/features/')
+
+    if output_folder is None:
+        output_folder=os.path.abspath('/share/storage/vision/subway/reconstructed/')
+   
+    events_files = get_events_files(event_folder)
+ 
+    event_counter = 0
+        
+    results = []
+
+    # Check which actions occur on each event
+    for pth, events_start, events_end in events_files:
+        data = sio.loadmat(pth)
+        events = data["events"]
+
+        # Avoid calculating files outside the window of interest           
+        if events_end <= start or events_start >= end:
+            print "Skipping %s" % pth
+            continue
+        else:
+            print "Processing %s" % pth
+
+        for event in events:
+            ((x,), (y,), (t,)), event_cuboids, event_descriptors, event_cuboid_locations, event_adjacency = event
+            if (t >= start - 40) and (t <= end + 40):
+                sort_order = np.argsort(event_descriptors[:,2])
+                X = event_descriptors[sort_order, :]
+                    
+                if dictionary is  None:
+                     dictionary = init_dictionary(X, components)
+
+                # Update code
+                code_T, __ = lasso_admm(X.T, dictionary.T, gamma=alpha)
+                    
+                code = code_T.T
+
+                mse = ((np.dot(dictionary.T, code.T) - X.T) ** 2).mean(axis=1)
+
+                results.append(((x, y, t), code, mse))
+
+                # Update dictionary
+                dictionary, residuals = _update_dict(dictionary.T, X.T, code.T,
+                                         return_r2=True, random_state=random_state)
+                dictionary = dictionary.T
+
+                event_counter += 1
+                    
+    result_pth = os.path.join(output_folder, "reconstructed_events_clip-%s-%s-%s.mat" % (start, end, "-".join(actions)))
+
+    sio.savemat(result_pth, {'results': results, 'start': start, 'end': end, 'actions': actions})
+    print "%s events saved in '%s'" % (event_counter, result_pth)
+    return dictionary
+
+
 def process_events(events_files, dictionary=None, train=False, random_state=None):
     """Extract event information from a .mat file.
     
@@ -64,58 +123,10 @@ def process_events(events_files, dictionary=None, train=False, random_state=None
         event_adjacency
     """
 
-    random_state = check_random_state(random_state)
+    print events_files
 
-    components = 100
-    alpha=1
-    
+
     for start, end, actions in get_ground_truth():
-        event_counter = 0
-        
-        # If training is selected, ignore clips with actions 
-        if train and len(actions) > 0:
-            continue
-
-        # Check which actions occur on each event
-        for pth, events_start, events_end in events_files:
-
-            # Avoid calculating files outside the window of interest           
-            if events_end <= start or events_start >= end:
-                continue
-
-            data = sio.loadmat(pth)
-            events = data["events"]
-            results = []
-
-            for event in events:
-                ((x,), (y,), (t,)), event_cuboids, event_descriptors, event_cuboid_locations, event_adjacency = event
-        
-                if (t >= start - 40) and (t <= end + 40):
-                    sort_order = np.argsort(event_descriptors[:,2])
-                    X = event_descriptors[sort_order, :]
-                    
-                    if dictionary is  None:
-                         dictionary = init_dictionary(X, components)
-
-                    # Update code
-                    code_T, __ = lasso_admm(X.T, dictionary.T, gamma=alpha)
-                    
-                    code = code_T.T
-
-                    mse = ((dictionary * code - X) ** 2).mean(axis=1)
-
-                    results.append((((x, y, t), code, mse))
-
-                    # Update dictionary
-                    dictionary, residuals = _update_dict(dictionary.T, X.T, code.T,
-                                             return_r2=True, random_state=random_state)
-                    dictionary = dictionary.T
-                    
-             result_pth = pth.replace(".mat", "%s-%s-result.mat" % (start, end))
-
-             sio.savemat(result_pth, {'results': results})
-             print "Saved %s" % result_pth
-
-        print "Found %s events in clip starting on %s and ending on %s with actions %s" % (event_counter, start, end, actions)
+       print "Found %s events in clip starting on %s and ending on %s with actions %s" % (event_counter, start, end, actions)
 
     return dictionary

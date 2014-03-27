@@ -16,7 +16,6 @@ from numpy.lib.stride_tricks import as_strided
 import os
 import glob
 import scipy.io as sio
-import pylab as P
 
 
 
