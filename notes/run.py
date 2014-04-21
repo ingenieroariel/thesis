@@ -3,7 +3,7 @@ import scipy.io as sio
 import sys
 from optparse import OptionParser
 
-#dictionary = sio.loadmat("/home/x/dictionary.mat")["dictionary"]
+dictionary = sio.loadmat("/home/x/dictionary.mat")["dictionary"]
 
 if __name__=="__main__":
     parser = OptionParser()
@@ -17,5 +17,4 @@ if __name__=="__main__":
 
     start, end = int(options.start), int(options.end)
 
-    print start, end
-#    reconstruct_events(dictionary=dictionary, start=start, end=end, actions=actions)
+    reconstruct_events(dictionary=dictionary, start=start, end=end)

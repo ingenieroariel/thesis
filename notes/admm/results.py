@@ -93,9 +93,9 @@ def reconstruct_events(event_folder=None,output_folder=None, dictionary=None, co
                     
                 code = code_T.T
 
-                mse = ((np.dot(dictionary.T, code.T) - X.T) ** 2).mean(axis=1)
+                error = (np.dot(dictionary.T, code.T) - X.T) ** 2
 
-                results.append(((x, y, t), code, mse))
+                results.append(((x, y, t), code, error))
 
                 # Update dictionary
                 dictionary, residuals = _update_dict(dictionary.T, X.T, code.T,
@@ -104,7 +104,7 @@ def reconstruct_events(event_folder=None,output_folder=None, dictionary=None, co
 
                 event_counter += 1
                     
-    result_pth = os.path.join(output_folder, "reconstructed_events_clip-%s-%s-%s.mat" % (start, end, "-".join(actions)))
+    result_pth = os.path.join(output_folder, "reconstructed_events_clip-%s-%s.mat" % (start, end))
 
     sio.savemat(result_pth, {'results': results, 'start': start, 'end': end, 'actions': actions})
     print "%s events saved in '%s'" % (event_counter, result_pth)
@@ -130,3 +130,48 @@ def process_events(events_files, dictionary=None, train=False, random_state=None
        print "Found %s events in clip starting on %s and ending on %s with actions %s" % (event_counter, start, end, actions)
 
     return dictionary
+
+def process_reconstructed(folder_path='/share/storage/vision/subway/reconstructed/'):
+    """Gather performance statistics from reconstructed events.
+    """ 
+    matfiles = sorted(glob.glob(os.path.join(folder_path, '*.mat')))
+    print "Getting files from: ", folder_path
+
+    all_events = None
+
+    for pth in matfiles:
+        print "Processing file:", pth
+        data = sio.loadmat(pth)
+        (start,) = data["start"]
+        actions = data["actions"]
+        (end, ) = data["end"]
+        results = data["results"]
+        print "Starts on ", start, " ends on ", end, " with ", len(results), " results"
+
+        events_dtype = [('x', np.uint8), ('y', np.uint8), ('frame', np.uint16), ('error', np.float32), ('sparsity', np.float32)]
+ 
+        # Create an array to hold x, y, zm  max error and sparsity for each event
+        events = np.zeros((len(results), 5), dtype=events_dtype)
+
+        for n, result in enumerate(results):
+
+            position, code, error = result
+            # This unpacking looks funny because the .mat file write/read adds another tuple wrapping the object
+            ((x,y,z),) = position
+
+            # Take the top 5% higher errors and average them.
+            max_error_avg = np.average(error, weights=(error > np.percentile(error, 95)))
+            # Measure how sparse the code is.
+            sparsity = np.sum(code[:] != 0)*1.0 / code.size
+
+            events[n,:] = x, y, z, max_error_avg, sparsity
+        
+        if all_events is not None:
+            all_events= np.concatenate((all_events, events), axis=0)
+        else:
+            all_events = events
+
+    # Sort by the z (time) index.
+    sort_order = np.argsort(all_events[:,2], axis=0)
+    
+    return np.unique(all_events[sort_order, :])
