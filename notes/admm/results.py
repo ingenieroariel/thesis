@@ -5,6 +5,7 @@ import csv
 import scipy.io as sio
 from admm.lasso import lasso_admm, _update_dict, init_dictionary
 from sklearn.utils import check_random_state
+from sklearn.decomposition import MiniBatchDictionaryLearning
 
 
 ACTIONS = ["nopay", "loitering","wrong_direction","interaction", "etc"]
@@ -53,8 +54,6 @@ def get_events_files(video_folder=os.path.abspath('features_subway')):
 
 
 def reconstruct_events(event_folder=None,output_folder=None, dictionary=None, components=100, alpha=1, start=0, end=np.inf, actions=[], random_state=None):
-    random_state = check_random_state(random_state)
- 
     if event_folder is None:
         event_folder=os.path.abspath('/share/storage/vision/subway/features/')
 
@@ -79,28 +78,34 @@ def reconstruct_events(event_folder=None,output_folder=None, dictionary=None, co
         else:
             print "Processing %s" % pth
 
+        intercept = None
+        deviation = None
+        dico = MiniBatchDictionaryLearning(n_components=components, alpha=alpha, n_iter=100)
+
         for event in events:
             ((x,), (y,), (t,)), event_cuboids, event_descriptors, event_cuboid_locations, event_adjacency = event
             if (t >= start - 40) and (t <= end + 40):
                 sort_order = np.argsort(event_descriptors[:,2])
                 X = event_descriptors[sort_order, :]
-                    
-                if dictionary is  None:
-                     dictionary = init_dictionary(X, components)
 
-                # Update code
-                code_T, __ = lasso_admm(X.T, dictionary.T, gamma=alpha)
-                    
-                code = code_T.T
+                if intercept is None:
+                    intercept = np.mean(X, axis=0)
 
-                error = (np.dot(dictionary.T, code.T) - X.T) ** 2
+                original  = X - intercept
+
+                if deviation is None:
+                    deviation = np.std(original, axis=0)
+
+                original /= deviation
+
+                dictionary = dico.fit(original).components_
+
+                dico.set_params(transform_algorithm='lars', transform_n_nonzero_coefs=5)
+
+                code = dico.transform(original)
+                error = (original - np.dot(code, dictionary)) ** 2
 
                 results.append(((x, y, t), code, error))
-
-                # Update dictionary
-                dictionary, residuals = _update_dict(dictionary.T, X.T, code.T,
-                                         return_r2=True, random_state=random_state)
-                dictionary = dictionary.T
 
                 event_counter += 1
                     
@@ -130,6 +135,7 @@ def process_events(events_files, dictionary=None, train=False, random_state=None
        print "Found %s events in clip starting on %s and ending on %s with actions %s" % (event_counter, start, end, actions)
 
     return dictionary
+
 
 def process_reconstructed(folder_path='/share/storage/vision/subway/reconstructed/'):
     """Gather performance statistics from reconstructed events.

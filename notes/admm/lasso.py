@@ -29,7 +29,7 @@ def lasso_cost(X, D, C, gamma):
     return the_cost
 
 
-def lasso_admm(X, D, gamma=1, C=None, double=False, max_rho=5.0, rho=1e-4, max_iter=500):
+def lasso_admm(X, D, gamma=1, C=None, gram=None, cov=None, double=False, max_rho=5.0, rho=1e-4, max_iter=500):
     """
     Finds the best sparse code for a given dictionary for
     approximating the data matrix X by solving::
@@ -57,6 +57,12 @@ def lasso_admm(X, D, gamma=1, C=None, double=False, max_rho=5.0, rho=1e-4, max_i
     if C is None:
         C = np.zeros((r, c))
 
+    if cov is None:
+       cov = np.dot(D.T, X)
+
+    if gram is None:
+        gram = np.dot(D.T, D)
+
     fast_sthresh = lambda x, th: np.sign(x) * np.maximum(np.abs(x) - th, 0)
 
     cost = []
@@ -64,8 +70,8 @@ def lasso_admm(X, D, gamma=1, C=None, double=False, max_rho=5.0, rho=1e-4, max_i
     for n in range(1, max_iter):
         #import ipdb;ipdb.set_trace()
         # Define terms for sub-problem
-        F = np.dot(D.T, D) + rho * I
-        G = np.dot(D.T, X) + np.dot(rho,C) - L
+        F = gram + rho * I
+        G = cov + np.dot(rho,C) - L
 
         B,resid,rank,s = np.linalg.lstsq(F,G)
 
