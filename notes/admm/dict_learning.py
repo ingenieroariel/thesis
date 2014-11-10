@@ -517,7 +517,6 @@ def dict_learning_online(X, n_components=2, alpha=1, n_iter=100,
                          batch_size=3, verbose=False, shuffle=True, n_jobs=1,
                          method='lars', iter_offset=0, random_state=None,
                          return_inner_stats=False, inner_stats=None,
-                         weights=None,
                          return_n_iter=False):
     """Solves a dictionary learning matrix factorization problem online.
 
@@ -619,9 +618,6 @@ def dict_learning_online(X, n_components=2, alpha=1, n_iter=100,
 
     """
 
-    print("ariel")
-    print(weights is None)
-
     if method not in ('lars', 'cd', 'admm'):
         raise ValueError('Coding method not supported as a fit algorithm.')
     method = 'lasso_' + method
@@ -683,7 +679,7 @@ def dict_learning_online(X, n_components=2, alpha=1, n_iter=100,
                 print ("Iteration % 3i (elapsed time: % 3is, % 4.1fmn)"
                        % (ii, dt, dt / 60))
 
-        this_code = sparse_encode(this_X, dictionary.T, algorithm=method, weights=weights,
+        this_code = sparse_encode(this_X, dictionary.T, algorithm=method,
                                   alpha=alpha, n_jobs=n_jobs).T
 
         # Update the auxiliary variables
@@ -718,7 +714,7 @@ def dict_learning_online(X, n_components=2, alpha=1, n_iter=100,
             print('Learning code...', end=' ')
         elif verbose == 1:
             print('|', end=' ')
-        code = sparse_encode(X, dictionary.T, algorithm=method, alpha=alpha, weights=weights,
+        code = sparse_encode(X, dictionary.T, algorithm=method, alpha=alpha, 
                              n_jobs=n_jobs)
         if verbose > 1:
             dt = (time.time() - t0)
@@ -748,7 +744,6 @@ class SparseCodingMixin(TransformerMixin):
         self.transform_alpha = transform_alpha
         self.split_sign = split_sign
         self.n_jobs = n_jobs
-        self.weights = None
 
     def transform(self, X, y=None):
         """Encode the data as a sparse combination of the dictionary atoms.
@@ -1144,7 +1139,6 @@ class MiniBatchDictionaryLearning(BaseEstimator, SparseCodingMixin):
                  fit_algorithm='lars', n_jobs=1, batch_size=3,
                  shuffle=True, dict_init=None, transform_algorithm='omp',
                  transform_n_nonzero_coefs=None, transform_alpha=None,
-                 weights=None,
                  verbose=False, split_sign=False, random_state=None):
 
         self._set_sparse_coding_params(n_components, transform_algorithm,
@@ -1159,7 +1153,6 @@ class MiniBatchDictionaryLearning(BaseEstimator, SparseCodingMixin):
         self.batch_size = batch_size
         self.split_sign = split_sign
         self.random_state = random_state
-        self.weights = weights
 
     def fit(self, X, y=None):
         """Fit the model from data in X.
@@ -1190,7 +1183,6 @@ class MiniBatchDictionaryLearning(BaseEstimator, SparseCodingMixin):
             batch_size=self.batch_size, shuffle=self.shuffle,
             verbose=self.verbose, random_state=random_state,
             return_inner_stats=True,
-            weights=self.weights,
             return_n_iter=True
             )
         self.components_ = U
@@ -1238,7 +1230,6 @@ class MiniBatchDictionaryLearning(BaseEstimator, SparseCodingMixin):
             verbose=self.verbose, return_code=False,
             iter_offset=iter_offset, random_state=self.random_state_,
             return_inner_stats=True, inner_stats=inner_stats,
-            weights=self.weights
             )
         self.components_ = U
 
